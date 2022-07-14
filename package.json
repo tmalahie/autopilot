@@ -1,0 +1,53 @@
+{
+	"enabledApiProposals": [
+		"inlineCompletionsAdditions"
+	],
+	"name": "autopilot",
+	"displayName": "Inline Completion Sample",
+	"description": "Sample showing how to implement an inline completion provider",
+	"version": "0.0.1",
+	"publisher": "tmalahie",
+	"repository": "https://github.com/tmalahie/autopilot",
+	"engines": {
+		"vscode": "^1.67.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "extension.autopilot-settings",
+				"title": "Inline Completion Settings"
+			}
+		],
+		"menus": {
+			"editor/inlineCompletions/actions": [
+				{
+					"command": "extension.autopilot-settings"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint . --ext .ts,.tsx",
+		"watch": "tsc -watch -p ./",
+		"download-api": "vscode-dts dev",
+		"postdownload-api": "vscode-dts main",
+		"postinstall": "npm run download-api"
+	},
+	"devDependencies": {
+		"@types/node": "^16.11.7",
+		"@typescript-eslint/eslint-plugin": "^5.30.0",
+		"@typescript-eslint/parser": "^5.30.0",
+		"eslint": "^8.13.0",
+		"typescript": "^4.7.2",
+		"vscode-dts": "^0.3.3"
+	}
+}
