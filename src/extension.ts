@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
+import { Configuration, OpenAIApi } from "openai";
 
-// Try it out in `playground.js`
+import path = require("path")
+import { config } from "dotenv";
+config({ path: path.join(path.dirname(__dirname), ".env") });
 
 export function activate(context: vscode.ExtensionContext) {
 	const disposable = vscode.commands.registerCommand(
@@ -10,43 +13,64 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	);
 
+	const configuration = new Configuration({
+		apiKey: process.env.OPENAI_API_KEY,
+	});
+	const openai = new OpenAIApi(configuration);
+
 	context.subscriptions.push(disposable);
-	let someTrackingIdCounter = 0;
+
+	let lastCallHandler: NodeJS.Timeout;
 
 	const provider: vscode.InlineCompletionItemProvider = {
 		provideInlineCompletionItems: async (document, position, context, token) => {
 			console.log('provideInlineCompletionItems triggered');
 
-			const regexp = /\/\/ \[(.+),(.+)\):(.*)/;
-			if (position.line <= 0) {
+			if (position.line <= 0)
+				return;
+
+			const firstLine = document.lineAt(0);
+			const lastLine = document.lineAt(document.lineCount - 1);
+
+			const textBefore = document.getText(new vscode.Range(firstLine.range.start, position));
+			let textAfterLine = document.getText(new vscode.Range(position, lastLine.range.end));
+			if (textAfterLine && !textAfterLine.startsWith("\r") && !textAfterLine.startsWith("\n"))
+				return;
+			
+			if (!textBefore)
+				return;
+
+			console.log('debounce triggered');
+			clearTimeout(lastCallHandler);
+			await new Promise((resolve) => {
+				lastCallHandler = setTimeout(resolve, 1000);
+			});
+
+			console.log('debounce completed');
+			let completion: Awaited<ReturnType<typeof openai.createCompletion>>;
+			try {
+				completion = await openai.createCompletion({
+					model: "davinci-codex",
+					prompt: textBefore,
+					max_tokens: 64,
+					stop: "\n"//textAfterLine || "\n"
+				});
+			}
+			catch (e) {
+				console.error(e);
 				return;
 			}
+			const predictions = completion.data.choices;
+			if (!predictions?.length)
+				return;
 
-			const lineBefore = document.lineAt(position.line - 1).text;
-			const matches = lineBefore.match(regexp);
-			if (matches) {
-				const start = matches[1];
-				const startInt = parseInt(start, 10);
-				const end = matches[2];
-				const endInt =
-					end === '*' ? document.lineAt(position.line).text.length : parseInt(end, 10);
-				const insertText = matches[3].replace(/\\n/g, '\n');
-
-				return [
-					{
-						insertText,
-						range: new vscode.Range(position.line, startInt, position.line, endInt),
-						someTrackingId: someTrackingIdCounter++,
-					},
-				] as MyInlineCompletionItem[];
-			}
+			console.log('success!');
+			return predictions.map<vscode.InlineCompletionItem>((prediction) => ({
+				insertText: prediction.text ?? "",
+				range: new vscode.Range(position.line,position.character, position.line,position.character),
+			}));
 		},
 	};
 
 	vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, provider);
-
-}
-
-interface MyInlineCompletionItem extends vscode.InlineCompletionItem {
-	someTrackingId: number;
 }
