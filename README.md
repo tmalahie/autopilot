@@ -2,13 +2,18 @@
 Alternative to Github Copilot based on OpenAPI
 
 ## Usage
-- Clone this repository
+- Clone this repository.
+
+- Install dependencies:
+```
+npm install
+```
 
 - Create a .env file based on .env.local:
 ```
 cp .env.local .env
 ```
-- Edit `.env` file. You'll need a working [OpenAI API key](https://beta.openai.com/account/api-keys)
+- Edit `.env` file. You'll need a working [OpenAI API key](https://beta.openai.com/account/api-keys).
 
 - Open the folder in VSCode and hit F5 to run the extension.
 
